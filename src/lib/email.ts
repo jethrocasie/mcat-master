@@ -17,7 +17,7 @@ export async function sendDailyDigest(data: DailyDigestData) {
   const streakEmoji = streak >= 7 ? "🔥" : streak >= 3 ? "✨" : "📚";
 
   await resend.emails.send({
-    from: "MCAT Master <noreply@mcatmaster.app>",
+    from: "MCAT Master <onboarding@resend.dev>",
     to,
     subject: `${dueCards} cards due today | ${streakEmoji} ${streak}-day streak`,
     html: `
