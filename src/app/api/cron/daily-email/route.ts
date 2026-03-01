@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient as createServerClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import { sendDailyDigest } from "@/lib/email";
 
-// This is triggered by Vercel Cron at 9:00 AM UTC daily (set in vercel.json)
 export async function GET() {
-  // Verify this is a legitimate cron request in production
-  const supabase = await createClient();
+  // Use service role client to access auth.admin
+  const adminSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const supabase = await createServerClient();
 
   // Get all users with email notifications enabled
   const { data: profiles, error } = await supabase
@@ -18,7 +23,7 @@ export async function GET() {
   }
 
   if (!profiles?.length) {
-    return NextResponse.json({ sent: 0 });
+    return NextResponse.json({ sent: 0, reason: "no profiles with notifications enabled" });
   }
 
   const today = new Date().toISOString().split("T")[0];
@@ -26,29 +31,30 @@ export async function GET() {
 
   for (const profile of profiles) {
     try {
-      // Get user's email from auth
-      const { data: userData } = await supabase.auth.admin.getUserById(profile.id);
+      // Get user's email via admin client
+      const { data: userData } = await adminSupabase.auth.admin.getUserById(profile.id);
       const email = userData?.user?.email;
       if (!email) continue;
 
       // Count due cards
-      const { count: dueCount } = await supabase
+      const { count: dueCount } = await adminSupabase
         .from("user_card_progress")
         .select("*", { count: "exact", head: true })
         .eq("user_id", profile.id)
         .lte("next_review_date", today);
 
       // Get weakest topic
-      const { data: weakData } = await supabase
+      const { data: weakData } = await adminSupabase
         .from("user_card_progress")
-        .select("card_id, times_seen, times_correct, flashcards(topic)")
+        .select("times_seen, times_correct, flashcards(topic)")
         .eq("user_id", profile.id)
         .gt("times_seen", 2);
 
-      // Aggregate by topic
       const topicStats: Record<string, { correct: number; total: number }> = {};
       for (const row of weakData ?? []) {
-        const topic = (row.flashcards as unknown as { topic: string } | null)?.topic ?? "Unknown";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fc = row.flashcards as any;
+        const topic = (Array.isArray(fc) ? fc[0]?.topic : fc?.topic) ?? "Unknown";
         if (!topicStats[topic]) topicStats[topic] = { correct: 0, total: 0 };
         topicStats[topic].correct += row.times_correct;
         topicStats[topic].total += row.times_seen;
