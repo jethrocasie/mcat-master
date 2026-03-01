@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server";
-import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendDailyDigest } from "@/lib/email";
 
 export async function GET() {
-  // Use service role client to access auth.admin
+  // Use service role client for everything — bypasses RLS, has auth.admin access
   const adminSupabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const supabase = await createServerClient();
-
   // Get all users with email notifications enabled
-  const { data: profiles, error } = await supabase
+  const { data: profiles, error } = await adminSupabase
     .from("profiles")
     .select("id, display_name, email_notifications, current_streak")
     .eq("email_notifications", true);
