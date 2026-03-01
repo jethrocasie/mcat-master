@@ -81,15 +81,17 @@ export default async function DashboardPage() {
   const topicStats: Record<string, { correct: number; total: number }> = {};
 
   for (const row of progressData ?? []) {
-    const card = row.flashcards as unknown as { mcat_section: McatSection; topic: string } | null;
-    if (!card) continue;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fc = row.flashcards as any;
+    const cardData = Array.isArray(fc) ? fc[0] : fc;
+    if (!cardData) continue;
 
-    const sec = card.mcat_section;
+    const sec = cardData.mcat_section as McatSection;
     if (!sectionStats[sec]) sectionStats[sec] = { correct: 0, total: 0 };
     sectionStats[sec].correct += row.times_correct;
     sectionStats[sec].total += row.times_seen;
 
-    const topic = card.topic;
+    const topic = cardData.topic as string;
     if (!topicStats[topic]) topicStats[topic] = { correct: 0, total: 0 };
     topicStats[topic].correct += row.times_correct;
     topicStats[topic].total += row.times_seen;
