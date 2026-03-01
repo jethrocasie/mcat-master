@@ -81,7 +81,7 @@ export default async function DashboardPage() {
   const topicStats: Record<string, { correct: number; total: number }> = {};
 
   for (const row of progressData ?? []) {
-    const card = row.flashcards as { mcat_section: McatSection; topic: string } | null;
+    const card = row.flashcards as unknown as { mcat_section: McatSection; topic: string } | null;
     if (!card) continue;
 
     const sec = card.mcat_section;

@@ -48,7 +48,7 @@ export async function GET() {
       // Aggregate by topic
       const topicStats: Record<string, { correct: number; total: number }> = {};
       for (const row of weakData ?? []) {
-        const topic = (row.flashcards as { topic: string } | null)?.topic ?? "Unknown";
+        const topic = (row.flashcards as unknown as { topic: string } | null)?.topic ?? "Unknown";
         if (!topicStats[topic]) topicStats[topic] = { correct: 0, total: 0 };
         topicStats[topic].correct += row.times_correct;
         topicStats[topic].total += row.times_seen;

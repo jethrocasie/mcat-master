@@ -56,7 +56,7 @@ export default async function ProgressPage() {
   for (const row of allProgress ?? []) {
     totalSessions += row.times_seen;
     totalCorrect += row.times_correct;
-    const card = row.flashcards as { mcat_section: McatSection; topic: string } | null;
+    const card = row.flashcards as unknown as { mcat_section: McatSection; topic: string } | null;
     if (!card) continue;
 
     const sec = card.mcat_section;
